@@ -8,8 +8,10 @@ such as Apache should be used.
 Author: Amir Zeldes
 """
 
+import json
 import cherrypy
 import os
+from tempfile import mkdtemp
 from open import open_main
 from structure import structure_main
 from segment import segment_main
@@ -18,7 +20,14 @@ from quick_export import quickexp_main
 from cherrypy.lib import file_generator
 import StringIO
 
+from modules.rstweb_sql import (
+    create_project, delete_project, get_all_projects, import_document)
+
+
 class Root(object):
+	def __init__(self):
+		self.import_dir = mkdtemp()
+
 	@cherrypy.expose
 	def default(self,**kwargs):
 		print(kwargs)
@@ -64,12 +73,65 @@ class Root(object):
 		print(kwargs)
 		return admin_main("local","3",'local',**kwargs)
 
+    # API methods
+
+	@cherrypy.expose
+	def add_project(self, name='rst-workbench'):
+		"""adds a new project to rstWeb, then returns all existing projects (JSON)
+
+		Usage example: curl -XPOST http://127.0.0.1:8080/add_project -F name="my-project"
+		"""
+		create_project(name)
+		return json.dumps({'projects': [elem[0] for elem in get_all_projects()]})
+
+	@cherrypy.expose
+	def import_rs3_file(self, rs3_file, project, file_name, import_dir=None, user='local'):
+		"""
+		Usage example: curl -XPOST http://127.0.0.1:8080/import_rs3_file -F rs3_file=@source.rs3 -F project=aaa -F file_name=target.rs3
+		"""
+		if import_dir is None:
+			import_dir = self.import_dir
+
+		file_content = rs3_file.file.read()
+		import_filepath = os.path.join(import_dir, file_name)
+		with open(import_filepath, 'w') as import_file:
+			import_file.write(file_content)
+
+		error = import_document(
+			os.path.join(import_dir, file_name), project, user)
+		if error is not None:
+			cherrypy.response.status = 404
+			return (
+				"Cannot import document into project '{0}' with "
+				"filename '{1}'. Reason: '{2}'\n").format(
+					project, file_name, error)
+		else:
+			cherrypy.response.status = 200
+			return "Imported document into project '{0}' with filename '{1}'\n".format(project, file_name)
+
+	@cherrypy.expose
+	def open_rs3_file(self, file_name, project, user='local'):
+		"""
+		Usage example POST: curl -v -XPOST http://127.0.0.1:8080/open_rs3_file -F file_name=target.rs3 -F project=aaa
+		Usage example GET: curl -XGET "http://127.0.0.1:8080/open_rs3_file?file_name=target.rs3&project=aaa"
+		"""
+		kwargs = {
+			'current_doc': file_name,
+			'current_guidelines': u'**current_guidelines**',
+			'current_project': project,
+			'dirty': u'',
+			'logging': u'',
+			'reset': u'',
+			'serve_mode': u'local',
+			'timestamp': u''}
+		return structure_main(user, admin='3', mode='local', **kwargs)
+
 
 current_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 conf = {
 		'/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
 		'/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
 		'/script': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'script')}
-        }
+		}
 
 cherrypy.quickstart(Root(), '/', conf)
