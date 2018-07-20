@@ -22,6 +22,7 @@ import cherrypy
 from cherrypy.lib import file_generator
 
 from open import open_main
+from screenshot import get_png
 from structure import structure_main
 from segment import segment_main
 from admin import admin_main
@@ -155,6 +156,9 @@ class Root(object):
 		cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="'+kwargs["quickexp_doc"]+'"'
 		return quickexp_main(user='local', admin='3', mode='local', **kwargs)
 
+	@cherrypy.expose
+	def screenshot(self, file_name, project):
+		return get_png(file_name, project, user='local', mode='local')
 
 current_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 conf = {
