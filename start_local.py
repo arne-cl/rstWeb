@@ -100,19 +100,29 @@ class Root(object):
 
 	@cherrypy.expose
 	def import_rs3_file(self, rs3_file, project, file_name, import_dir=None):
-		"""
+		"""Imports an rs3 file into a project. The project will be created if
+		it doesn't exist, yet.
+
 		Usage example: curl -XPOST http://127.0.0.1:8080/import_rs3_file -F rs3_file=@source.rs3 -F project=aaa -F file_name=target.rs3
 		"""
 		if import_dir is None:
 			import_dir = self.import_dir
 
+		# upload the POSTed file into the import directory
 		file_content = rs3_file.file.read()
 		import_filepath = os.path.join(import_dir, file_name)
 		with open(import_filepath, 'w') as import_file:
 			import_file.write(file_content)
 
+		existing_projects = [elem[0] for elem in get_all_projects()]
+		if project not in existing_projects:
+			self.add_project(name=project)
+
+		# import the file into the database, then remove the temporary file
 		error = import_document(
 			os.path.join(import_dir, file_name), project, 'local')
+		os.remove(import_file.name)
+
 		if error is not None:
 			cherrypy.response.status = 404
 			return (
@@ -157,7 +167,9 @@ class Root(object):
 		return quickexp_main(user='local', admin='3', mode='local', **kwargs)
 
 	@cherrypy.expose
-	def screenshot(self, file_name, project):
+	def screenshot(self, file_name, project, output_format='png'):
+		"""download an image of an rhetorical structure tree of an rs3 file stored
+		in the given project."""
 		return get_png(file_name, project, user='local', mode='local')
 
 current_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
