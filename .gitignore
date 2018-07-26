@@ -1,0 +1,10 @@
+# file types to ignore
+*.pyc
+*.log
+
+# directories to ignore
+__pycache__
+
+# specific files to ignore
+modules/viewer/main/phantomjs/phantomjs
+modules/viewer/rstweb.db
