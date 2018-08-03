@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-# pylint: disable=invalid-name
-
-"""
-CherryPy-based webservice daemon with background threads
-"""
-
 from __future__ import print_function
 from collections import defaultdict
 import threading
@@ -13,7 +7,7 @@ import json
 import os
 
 import cherrypy
-from cherrypy.lib import auth_basic  # noqa pylint: disable=unused-import
+from cherrypy.lib import auth_basic
 from cherrypy.process import plugins
 import cherrypy_cors
 
@@ -27,9 +21,6 @@ sample_nodes = [
     'node1',
     'node2',
 ]
-
-#def get_users(doc,project):
-#	return generic_query("SELECT user from rst_nodes WHERE doc=? and project=? and not user='_orig'",(doc,project))
 
 
 def get_all_docs(user, project):
@@ -98,35 +89,13 @@ class APIController(object):
                 'reset': u'',
                 'serve_mode': u'local',
                 'timestamp': u''}
+            # ~ import pudb; pudb.set_trace()
             return structure_main(user='local', admin='3', mode='local', **kwargs)
         else:
             raise cherrypy.HTTPError(
                 400, 'Unknown output format: {0}'.format(output))
-            
-#        import pudb; pudb.set_trace()
 
-    """Controller for fictional "nodes" webservice APIs"""
 
-    @cherrypy.tools.json_out()
-    def get_all(self): \
-            # pylint: disable=no-self-use
-        """
-        Handler for /nodes (GET)
-        """
-        return [{'name': name} for name in sample_nodes]
-
-    @cherrypy.tools.json_out()
-    def get(self, name): \
-            # pylint: disable=no-self-use
-        """
-        Handler for /nodes/<name> (GET)
-        """
-
-        if name not in sample_nodes:
-            raise cherrypy.HTTPError(
-                404, 'Node \"{0}\" not found'.format(name))
-
-        return [{'name': name}]
 
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -206,14 +175,6 @@ def jsonify_error(status, message, traceback, version): \
     return response_body
 
 
-def validate_password(realm, username, password): \
-        # pylint: disable=unused-argument
-    """
-    Simple password validation
-    """
-    return username in USERS and USERS[username] == password
-
-
 if __name__ == '__main__':
     cherrypy_cors.install()
 
@@ -254,9 +215,6 @@ if __name__ == '__main__':
                        action='get_project',
                        controller=APIController(),
                        conditions={'method': ['GET']})
-
-
-    # ~ def get_document(self, project_name, file_name, output):
 
     # /documents/{project_name}/{file_name} (GET)
     dispatcher.connect(name='documents',
@@ -311,9 +269,6 @@ if __name__ == '__main__':
             'request.dispatch': dispatcher,
             'error_page.default': jsonify_error,
             'cors.expose.on': True,
-#            'tools.auth_basic.on': True,
-#            'tools.auth_basic.realm': 'localhost',
-#            'tools.auth_basic.checkpassword': validate_password,
         },
         '/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
         '/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
