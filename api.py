@@ -89,7 +89,6 @@ class APIController(object):
                 'reset': u'',
                 'serve_mode': u'local',
                 'timestamp': u''}
-            # ~ import pudb; pudb.set_trace()
             return structure_main(user='local', admin='3', mode='local', **kwargs)
         else:
             raise cherrypy.HTTPError(
@@ -203,7 +202,6 @@ if __name__ == '__main__':
                        controller=APIController(),
                        conditions={'method': ['GET']})
 
-
     # /documents/{project_name} (GET)
     #
     # Request "/projects/notfound" (GET) to test the 404 (not found) handler
@@ -222,45 +220,6 @@ if __name__ == '__main__':
                        action='get_document',
                        controller=APIController(),
                        conditions={'method': ['GET']})
-
-
-    # /nodes (GET)
-    dispatcher.connect(name='nodes',
-                       route='/nodes',
-                       action='get_all',
-                       controller=APIController(),
-                       conditions={'method': ['GET']})
-
-    # /nodes/{name} (GET)
-    #
-    # Request "/nodes/notfound" (GET) to test the 404 (not found) handler
-    dispatcher.connect(name='nodes',
-                       route='/nodes/{name}',
-                       action='get',
-                       controller=APIController(),
-                       conditions={'method': ['GET']})
-
-    # /nodes/{name} (POST)
-    dispatcher.connect(name='nodes',
-                       route='/nodes',
-                       action='add_node',
-                       controller=APIController(),
-                       conditions={'method': ['POST']})
-
-    # /nodes/{name} (PUT)
-    dispatcher.connect(name='nodes',
-                       route='/nodes/{name}',
-                       action='update_node',
-                       controller=APIController(),
-                       conditions={'method': ['PUT']})
-
-    # /nodes/{name} (DELETE)
-    dispatcher.connect(name='nodes',
-                       route='/nodes/{name}',
-                       action='delete_node',
-                       controller=APIController(),
-                       conditions={'method': ['DELETE']})
-
 
     current_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
