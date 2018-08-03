@@ -144,9 +144,9 @@ def admin_main(user, admin, mode, **kwargs):
 		<input type="hidden" name="guidelines_url" id="guidelines_url" value=""/>
 		<input id="file" type="file" name="file" multiple="multiple"/>
 	</form>
-	<script src="./script/admin.js"></script>
-	<script src="./script/jquery-1.11.3.min.js"></script>
-	<script src="./script/jquery-ui.min.js"></script>
+	<script src="/script/admin.js"></script>
+	<script src="/script/jquery-1.11.3.min.js"></script>
+	<script src="/script/jquery-ui.min.js"></script>
 	'''
 
 
