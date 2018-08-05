@@ -123,7 +123,7 @@ class APIController(object):
         Adds a new project to the user 'local'. (Adding a project that already
         exists has no effect.)
         """
-        raise NotImplementedError
+        rstweb_sql.create_project(project_name)
 
     @cherrypy.expose
     def delete_project(self, project_name):
@@ -302,6 +302,13 @@ def create_api_dispatcher():
                        action='get_project',
                        controller=APIController(),
                        conditions={'method': ['GET']})
+
+    # /projects/{project_name} (POST)
+    dispatcher.connect(name='projects',
+                       route='/projects/{project_name}',
+                       action='add_project',
+                       controller=APIController(),
+                       conditions={'method': ['POST']})
 
     # /documents (GET)
     dispatcher.connect(name='documents',
