@@ -105,10 +105,10 @@ class APIController(object):
     @cherrypy.expose
     def delete_projects(self):
         """Handler for /projects (DELETE).
-        Deletes all projects of the user 'local'.
+        Deletes all projects.
         """
-        # TODO: check if this automatically deletes the documents from the db
-        raise NotImplementedError
+        for project in self.get_projects():
+            rstweb_sql.delete_project(project)
 
     @cherrypy.tools.json_out()
     def get_project(self, project_name):
@@ -286,6 +286,13 @@ def create_api_dispatcher():
                        action='get_projects',
                        controller=APIController(),
                        conditions={'method': ['GET']})
+
+    # /projects (DELETE)
+    dispatcher.connect(name='projects',
+                       route='/projects',
+                       action='delete_projects',
+                       controller=APIController(),
+                       conditions={'method': ['DELETE']})
 
     # /projects/{project_name} (GET)
     #
