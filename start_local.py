@@ -20,7 +20,9 @@ except ImportError:
 
 import cherrypy
 from cherrypy.lib import file_generator
+import cherrypy_cors
 
+from api import APIController, create_api_dispatcher, jsonify_error
 from open import open_main
 from screenshot import get_png
 from structure import structure_main
@@ -172,11 +174,30 @@ class Root(object):
 		in the given project."""
 		return get_png(file_name, project, user='local', mode='local')
 
+
+cherrypy_cors.install()
+dispatcher = create_api_dispatcher()
+
 current_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 conf = {
-		'/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
-		'/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
-		'/script': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'script')}
-        }
+	'/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
+	'/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
+	'/script': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'script')}
+}
 
-cherrypy.quickstart(Root(), '/', conf)
+api_conf = {
+        '/': {
+            'request.dispatch': dispatcher,
+            'error_page.default': jsonify_error,
+            'cors.expose.on': True,
+        },
+        '/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
+        '/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
+        '/script': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'script')}
+}
+
+cherrypy.tree.mount(root=Root(), config=conf)
+cherrypy.tree.mount(root=None, script_name='/api', config=api_conf)
+
+cherrypy.engine.start()
+cherrypy.engine.block()
