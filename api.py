@@ -224,12 +224,21 @@ class APIController(object):
         project for the user 'local') will also raise an error. To update
         an existing document, use the `update_document` method.
 
+        Parameters
+        ----------
+        project_name : str
+            project that the document will be added to
+        file_name : str
+            file name under which the document will be stored in the project
+        rs3_file : cherrypy._cpreqbody.Part
+            a cherrypy representation of the content of the uploaded rs3 file
+
         Usage example:
 
         To upload the document 'source.rs3' into the project 'my-project' and
         store it under the name 'target.rs3', run this command in your shell.
 
-            curl -XPOST http://localhost:8080/documents/my-project/target.rs3 -F rs3_file=@source.rs3
+            curl -XPOST http://localhost:8080/api/documents/my-project/target.rs3 -F rs3_file=@source.rs3
         """
         # do not overwrite existing document with the same file name
         project_docs = self.get_project_documents(project_name)
