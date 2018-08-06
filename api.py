@@ -14,13 +14,16 @@ import base64
 from collections import defaultdict
 import json
 import os
-from tempfile import mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 
 import cherrypy
 
 from modules import rstweb_sql
 from quick_export import quickexp_main
 from screenshot import get_png
+
+
+TEMP_PROJECT = '_temp_convert'
 
 
 def get_all_docs(user, project):
@@ -276,6 +279,61 @@ class APIController(object):
         else:
             return "Updated document '{0}' in project '{1}'".format(project_name, file_name)
 
+    @cherrypy.expose
+    def convert_file(self, input_file, input_format='rs3', output_format='png'):
+        """Handler for /convert_file (POST)
+        Converts an RST document into another format without (permanently)
+        storing it in the database.
+
+        Parameters
+        ----------
+        input_file : cherrypy._cpreqbody.Part
+            a cherrypy representation of the content of the uploaded rs3 file
+        input_format : str
+            format of the input file
+        output_format : str
+            format that the input file should be converted into
+
+        Usage example:
+
+            curl -XPOST "http://localhost:8080/api/convert_file?input_format=rs3&output_format=png" -F input_file=@test.rs3
+        """
+        error = None
+
+        if input_format == 'rs3':
+            # create temp file, fill it with POSTed file content, import into db,
+            # remove temp file.
+            temp_file = NamedTemporaryFile(suffix='.rs3', dir=self.import_dir, delete=False)
+            input_filepath = temp_file.name
+            input_filename = os.path.basename(input_filepath)
+            try:
+                self.add_document(project_name=TEMP_PROJECT, file_name=input_filename, rs3_file=input_file)
+            except Exception as e:
+                error = e
+            finally:
+                if os.path.isfile(input_filepath):
+                    os.remove(input_filepath)
+
+            # check if document was imported
+            project_docs = self.get_project_documents(TEMP_PROJECT)
+            if error is not None or input_filename not in project_docs:
+                raise cherrypy.HTTPError(
+                    500, ("Cannot import temp file '{0}'. Reason: '{1}'").format(input_filepath, error))
+
+            # convert to given output format
+            if output_format in ('png', 'png-base64'):
+                response = self.get_document(project_name=TEMP_PROJECT, file_name=input_filename, output=output_format)
+            else:
+                raise cherrypy.HTTPError(
+                    400, "Unknown output format: '{0}'".format(output_format))
+
+            # delete document from database
+            self.delete_document(project_name=TEMP_PROJECT, file_name=input_filename)
+            return response
+        else:
+            raise cherrypy.HTTPError(
+                400, "Unknown input format: '{0}'".format(input_format))
+
 
 def jsonify_error(status, message, traceback, version):
     """JSONify all CherryPy error responses (created by raising the
@@ -373,6 +431,13 @@ def create_api_dispatcher():
                        action='update_document',
                        controller=APIController(),
                        conditions={'method': ['PUT']})
+
+    # /convert_file (POST)
+    dispatcher.connect(name='documents',
+                       route='/convert_file',
+                       action='convert_file',
+                       controller=APIController(),
+                       conditions={'method': ['POST']})
 
     return dispatcher
 
