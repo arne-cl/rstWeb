@@ -452,7 +452,6 @@ def create_api_dispatcher():
                        controller=APIController(),
                        conditions={'method': ['DELETE']})
 
-
     # /convert_file (POST)
     dispatcher.connect(name='documents',
                        route='/convert_file',

@@ -4,6 +4,7 @@
 
 # directories to ignore
 __pycache__
+.pytest_cache
 
 # specific files to ignore
 modules/viewer/main/phantomjs/phantomjs
