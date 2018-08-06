@@ -280,6 +280,19 @@ class APIController(object):
             return "Updated document '{0}' in project '{1}'".format(project_name, file_name)
 
     @cherrypy.expose
+    def delete_document(self, project_name, file_name):
+        """Handler for /documents/{project_name}/{file_name} (DELETE)
+        Deletes a document from a project.
+        """
+        rstweb_sql.delete_document(file_name, project_name)
+
+        # check if document was deleted
+        project_docs = self.get_project_documents(project_name)
+        if file_name in project_docs:
+            raise cherrypy.HTTPError(
+                500, "Cannot delete document '{0}' from project '{1}' ".format(file_name, project_name))
+
+    @cherrypy.expose
     def convert_file(self, input_file, input_format='rs3', output_format='png'):
         """Handler for /convert_file (POST)
         Converts an RST document into another format without (permanently)
@@ -431,6 +444,14 @@ def create_api_dispatcher():
                        action='update_document',
                        controller=APIController(),
                        conditions={'method': ['PUT']})
+
+    # /documents/{project_name}/{file_name} (DELETE)
+    dispatcher.connect(name='documents',
+                       route='/documents/{project_name}/{file_name}',
+                       action='delete_document',
+                       controller=APIController(),
+                       conditions={'method': ['DELETE']})
+
 
     # /convert_file (POST)
     dispatcher.connect(name='documents',
