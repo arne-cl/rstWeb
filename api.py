@@ -118,7 +118,7 @@ class APIController(object):
             a = cherrypy.tree.apps['/api']
             r = a.config['/']['request.dispatch']
         """
-        return "rstWeb API"
+        return "rstWeb API\n"
 
     @cherrypy.tools.json_out()
     def get_projects(self):
@@ -309,7 +309,7 @@ class APIController(object):
 
         Usage example:
 
-            curl -XPOST "http://localhost:8080/api/convert_file?input_format=rs3&output_format=png" -F input_file=@test.rs3
+            curl -XPOST "http://localhost:8080/api/convert_file?input_format=rs3&output_format=png" -F input_file=@test.rs3 > test.png
         """
         error = None
 

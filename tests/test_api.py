@@ -17,6 +17,7 @@ import imagehash
 TESTDIR = os.path.dirname(__file__)
 RS3_FILEPATH = os.path.join(TESTDIR, 'test.rs3')
 EXPECTED_PNG1 = os.path.join(TESTDIR, 'result1.png')
+BASEURL = "http://127.0.0.1:8080/api"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -26,7 +27,7 @@ def start_api():
     """
     print("starting rstWeb...")
     child = pexpect.spawn('python start_local.py')
-    
+
     # provide the fixture value (we don't need it, but it marks the
     # point when the 'setup' part of this fixture ends).
     yield child.expect('Serving on http://127.0.0.1:8080')
@@ -51,7 +52,7 @@ def test_rs3_to_png():
         input_text = input_file.read()
 
     res = requests.post(
-        'http://localhost:8080/api/convert_file?input_format=rs3&output_format=png',
+        '{}/convert_file?input_format=rs3&output_format=png'.format(BASEURL),
         files={'input_file': input_text})
     assert image_matches(io.BytesIO(res.content))
 
@@ -61,9 +62,15 @@ def test_rs3_to_png_base64():
     with open(RS3_FILEPATH) as input_file:
         input_text = input_file.read()
 
-    # ~ import pudb; pudb.set_trace()
     res = requests.post(
-        'http://localhost:8080/api/convert_file?input_format=rs3&output_format=png-base64',
+        '{}/convert_file?input_format=rs3&output_format=png-base64'.format(BASEURL),
         files={'input_file': input_text})
     png_bytes = base64.b64decode(res.content)
     assert image_matches(io.BytesIO(png_bytes))
+
+
+def test_get_index():
+    res = requests.get(BASEURL)
+    assert 'rstWeb API' in res.content
+
+
