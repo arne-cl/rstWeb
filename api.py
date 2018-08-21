@@ -294,7 +294,7 @@ class APIController(object):
 
     @cherrypy.expose
     def convert_file(self, input_file, input_format='rs3', output_format='png'):
-        """Handler for /convert_file (POST)
+        """Handler for /convert (POST)
         Converts an RST document into another format without (permanently)
         storing it in the database.
 
@@ -309,7 +309,7 @@ class APIController(object):
 
         Usage example:
 
-            curl -XPOST "http://localhost:8080/api/convert_file?input_format=rs3&output_format=png" -F input_file=@test.rs3 > test.png
+            curl -XPOST "http://localhost:8080/api/convert?input_format=rs3&output_format=png" -F input_file=@test.rs3 > test.png
         """
         error = None
 
@@ -452,9 +452,9 @@ def create_api_dispatcher():
                        controller=APIController(),
                        conditions={'method': ['DELETE']})
 
-    # /convert_file (POST)
+    # /convert (POST)
     dispatcher.connect(name='documents',
-                       route='/convert_file',
+                       route='/convert',
                        action='convert_file',
                        controller=APIController(),
                        conditions={'method': ['POST']})
