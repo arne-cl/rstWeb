@@ -190,6 +190,7 @@ api_conf = {
             'request.dispatch': dispatcher,
             'error_page.default': jsonify_error,
             'cors.expose.on': True,
+            'request.show_tracebacks': True
         },
         '/css': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'css')},
         '/img': {'tools.staticdir.on': True,'tools.staticdir.dir': os.path.join(current_dir,'img')},
@@ -197,7 +198,7 @@ api_conf = {
 }
 
 cherrypy.tree.mount(root=Root(), config=conf)
-cherrypy.tree.mount(root=None, script_name='/api', config=api_conf)
+cherrypy.tree.mount(root=APIController(), script_name='/api', config=api_conf)
 
 cherrypy.engine.start()
 cherrypy.engine.block()
