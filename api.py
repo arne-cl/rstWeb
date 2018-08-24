@@ -90,10 +90,9 @@ class APIController(object):
         self.import_dir = mkdtemp()
 
     def import_rs3_file(self, rs3_file, file_name, project_name):
-        """
-        rs3_file: cherrypy._cpreqbody.Part
-        """
+        """Import an .rs3 file into rstWeb's database."""
         # upload the POSTed file into the import directory
+        # rs3_file: cherrypy._cpreqbody.Part
         file_content = rs3_file.file.read()
         import_filepath = os.path.join(self.import_dir, file_name)
         with open(import_filepath, 'w') as import_file:
@@ -110,7 +109,7 @@ class APIController(object):
 
     @cherrypy.expose
     def get_index(self):
-        """Handler for / (GET)
+        """Handler for / (GET).
 
         TODO: return a list of all available handlers (incl. paths, URL parameters and use case).
         To implement this, try this as a starting point:
@@ -190,7 +189,7 @@ class APIController(object):
     def delete_documents(self, project_name=None):
         """Handler for /documents (DELETE) and /documents/{project_name} (DELETE).
         Delete all documents (of the user 'local') or delete all documents of
-        the given project
+        the given project.
         """
         if project_name is None:
             rstweb_sql.delete_docs_for_user('local')
@@ -206,7 +205,7 @@ class APIController(object):
 
     @cherrypy.expose
     def get_document(self, project_name, file_name, output='rs3'):
-        """Handler for /documents/{project_name}/{file_name} (GET)
+        """Handler for /documents/{project_name}/{file_name} (GET).
         Returns a document either as an `rs3` file, a `png` image of an RST tree,
         a base64-encoded png image or opens it in the structure editor.
         """
@@ -276,7 +275,7 @@ class APIController(object):
 
     @cherrypy.expose
     def update_document(self, project_name, file_name, rs3_file):
-        """Handler for /documents/{project_name}/{file_name} (PUT)
+        """Handler for /documents/{project_name}/{file_name} (PUT).
         Updates a document in the given project of the user 'local'.
 
         Updating a non-existing document is the same as adding a new document.
@@ -308,7 +307,7 @@ class APIController(object):
 
     @cherrypy.expose
     def convert_file(self, input_file, input_format='rs3', output_format='png'):
-        """Handler for /convert (POST)
+        """Handler for /convert (POST).
         Converts an RST document into another format without (permanently)
         storing it in the database.
 
@@ -380,6 +379,7 @@ def jsonify_error(status, message, traceback, version):
 
 
 def create_api_dispatcher():
+    """define all routes of the rstWeb API"""
     dispatcher = cherrypy.dispatch.RoutesDispatcher()
 
     # / (GET)
