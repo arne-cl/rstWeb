@@ -87,13 +87,22 @@ def get_documents(project_name=None):
         return requests.get('{0}/documents/{1}'.format(BASEURL, project_name))
 
 
-def get_document(project_name, document_name):
-    return requests.get('{0}/documents/{1}/{2}'.format(BASEURL, project_name, document_name))
+def get_document(project_name, document_name, output='rs3'):
+    return requests.get(
+        '{0}/documents/{1}/{2}?output={3}'.format(
+            BASEURL, project_name, document_name, output))
 
 
 def add_document(project_name, document_name, rs3_filepath):
     with open(rs3_filepath, 'rb') as rs3_file:
         return requests.post('{0}/documents/{1}/{2}'.format(
+            BASEURL, project_name, document_name),
+            files={'rs3_file': rs3_file})
+
+
+def update_document(project_name, document_name, rs3_filepath):
+    with open(rs3_filepath, 'rb') as rs3_file:
+        return requests.put('{0}/documents/{1}/{2}'.format(
             BASEURL, project_name, document_name),
             files={'rs3_file': rs3_file})
 
@@ -199,11 +208,10 @@ def test_documents():
     assert res.json() == ['doc1', 'doc2']
 
     # we can retrieve a document we added
-    with open('tests/test.rs3') as rs3_file:
-        res = get_document('project1', 'doc1')
-        # rstWeb parses and reformats uploaded documents, so we can't
-        # simply compare the files
-        assert 'they accepted the offer' in res.content
+    res = get_document('project1', 'doc1')
+    # rstWeb parses and reformats uploaded documents, so we can't
+    # simply compare the files
+    assert 'they accepted the offer' in res.content
 
     # after we delete a document, we can no longer retrieve it
     delete_document('project1', 'doc1')
@@ -211,7 +219,7 @@ def test_documents():
     assert res.json() == ['doc2']
 
     res = get_document('project1', 'doc1')
-    assert res.status_code == 400
+    assert res.status_code == 404
 
     # we can delete all documents of a project
     res = delete_documents('project1')
@@ -227,4 +235,23 @@ def test_documents():
     res = get_documents()
     assert res.json() == {'documents': {}}
 
+
+def test_open_document():
+    """A stored document can be opened in the structure editor."""
+    add_document('project1', 'doc1', 'tests/test.rs3')
+    res = get_document('project1', 'doc1', output='editor')
+    assert res.status_code == 200
+    for string in ('Structure editor', 'they accepted the offer'):
+        assert string in res.content
+
+
+def test_update_document():
+    """A stored document can be replaced with a newly uploaded one."""
+    res = add_document('project1', 'doc1', 'tests/test.rs3')
+    res = get_document('project1', 'doc1')
+    assert 'they accepted the offer' in res.content
+
+    update_document('project1', 'doc1', 'tests/test2.rs3')
+    res = get_document('project1', 'doc1')
+    assert 'drive a car' in res.content
 

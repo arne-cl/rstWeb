@@ -214,7 +214,7 @@ class APIController(object):
         documents = self.get_project(project_name).get('documents')
         if documents is None or file_name not in documents:
             raise cherrypy.HTTPError(
-                400, ("File '{0}' not available in project '{1}' for the current user. "
+                404, ("File '{0}' not available in project '{1}' for the current user. "
                       "Available files: {2}").format(file_name, project_name, documents))
 
         if output == 'rs3':
