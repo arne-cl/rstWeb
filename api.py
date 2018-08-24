@@ -172,23 +172,37 @@ class APIController(object):
             raise cherrypy.HTTPError(500, "Could not delete project '{0}'".format(project_name))
 
     @cherrypy.tools.json_out()
-    def get_documents(self):
-        """Handler for /documents (GET).
+    def get_documents(self, project_name=None):
+        """Handler for /documents (GET) and /documents/{project_name} (GET).
         Returns a JSON struct containing all documents in all projects from the
         user 'local'.
         """
-        all_documents = rstweb_sql.generic_query("SELECT doc, project FROM docs WHERE user=?", ('local',))
-        docs_dict = defaultdict(list)
-        for file_name, project_name in all_documents:
-            docs_dict[project_name].append(file_name)
-        return {'documents': docs_dict}
+        if project_name is None:
+            all_documents = rstweb_sql.generic_query("SELECT doc, project FROM docs WHERE user=?", ('local',))
+            docs_dict = defaultdict(list)
+            for file_name, project_name in all_documents:
+                docs_dict[project_name].append(file_name)
+            return {'documents': docs_dict}
+        else:
+            return get_all_docs('local', project_name)
 
-    @cherrypy.tools.json_out()
-    def get_project_documents(self, project_name):
-        """Handler for /documents/{project_name} (GET).
-        Returns a list of all documents in that project from the user 'local').
+    @cherrypy.expose
+    def delete_documents(self, project_name=None):
+        """Handler for /documents (DELETE) and /documents/{project_name} (DELETE).
+        Delete all documents (of the user 'local') or delete all documents of
+        the given project
         """
-        return get_all_docs('local', project_name)
+        if project_name is None:
+            rstweb_sql.delete_docs_for_user('local')
+            assert self.get_documents() == {'documents': {}}
+        else:  # delete all documents of a project, but keep the project itself
+            # do nothing if project doesn't exist
+            if project_name in self.get_projects():
+                rstweb_sql.generic_query("DELETE FROM rst_nodes WHERE project=?",(project_name,))
+                rstweb_sql.generic_query("DELETE FROM rst_relations WHERE project=?",(project_name,))
+                rstweb_sql.generic_query("DELETE FROM docs WHERE project=?",(project_name,))
+                assert project_name in self.get_projects()
+                assert self.get_documents(project_name) == []
 
     @cherrypy.expose
     def get_document(self, project_name, file_name, output='rs3'):
@@ -244,17 +258,17 @@ class APIController(object):
             curl -XPOST http://localhost:8080/api/documents/my-project/target.rs3 -F rs3_file=@source.rs3
         """
         # do not overwrite existing document with the same file name
-        project_docs = self.get_project_documents(project_name)
+        project_docs = self.get_documents(project_name)
         if file_name in project_docs:
             raise cherrypy.HTTPError(
-                500, (("File '{0}' already exists in project '{1}'. "
+                400, (("File '{0}' already exists in project '{1}'. "
                        "Use PUT to overwrite it.")).format(file_name, project_name))
 
         # import rs3 file
         error = self.import_rs3_file(rs3_file, file_name, project_name)
 
         # check if document was imported
-        project_docs = self.get_project_documents(project_name)
+        project_docs = self.get_documents(project_name)
         if error is not None or file_name not in project_docs:
             raise cherrypy.HTTPError(
                 500, ("Cannot import document into project '{0}' with "
@@ -271,7 +285,7 @@ class APIController(object):
         error = self.import_rs3_file(rs3_file, file_name, project_name)
 
         # check if document exists
-        project_docs = self.get_project_documents(project_name)
+        project_docs = self.get_documents(project_name)
         if error is not None or file_name not in project_docs:
             raise cherrypy.HTTPError(
                 500, ("Cannot update document '{0}' in project '{1}' "
@@ -287,7 +301,7 @@ class APIController(object):
         rstweb_sql.delete_document(file_name, project_name)
 
         # check if document was deleted
-        project_docs = self.get_project_documents(project_name)
+        project_docs = self.get_documents(project_name)
         if file_name in project_docs:
             raise cherrypy.HTTPError(
                 500, "Cannot delete document '{0}' from project '{1}' ".format(file_name, project_name))
@@ -328,7 +342,7 @@ class APIController(object):
                     os.remove(input_filepath)
 
             # check if document was imported
-            project_docs = self.get_project_documents(TEMP_PROJECT)
+            project_docs = self.get_documents(TEMP_PROJECT)
             if error is not None or input_filename not in project_docs:
                 raise cherrypy.HTTPError(
                     500, ("Cannot import temp file '{0}'. Reason: '{1}'").format(input_filepath, error))
@@ -417,12 +431,27 @@ def create_api_dispatcher():
                        controller=APIController(),
                        conditions={'method': ['GET']})
 
+    # /documents (DELETE)
+    dispatcher.connect(name='documents',
+                       route='/documents',
+                       action='delete_documents',
+                       controller=APIController(),
+                       conditions={'method': ['DELETE']})
+
     # /documents/{project_name} (GET)
     dispatcher.connect(name='documents',
                        route='/documents/{project_name}',
-                       action='get_project_documents',
+                       action='get_documents',
                        controller=APIController(),
                        conditions={'method': ['GET']})
+
+    # /documents/{project_name} (DELETE)
+    dispatcher.connect(name='documents',
+                       route='/documents/{project_name}',
+                       action='delete_documents',
+                       controller=APIController(),
+                       conditions={'method': ['DELETE']})
+
 
     # /documents/{project_name}/{file_name} (GET)
     dispatcher.connect(name='documents',
