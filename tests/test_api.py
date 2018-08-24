@@ -68,18 +68,46 @@ def image_matches(produced_file, expected_files=[EXPECTED_PNG1]):
 
 def get_projects():
     """GET /projects helper function"""
-    res = requests.get('{}/projects'.format(BASEURL))
-    return res.json()
+    return requests.get('{}/projects'.format(BASEURL))
 
 
 def delete_project(project_name):
-    res = requests.delete('{0}/projects/{1}'.format(BASEURL, project_name))
-    assert res.status_code == 200
+    return requests.delete('{0}/projects/{1}'.format(BASEURL, project_name))
 
 
 def add_project(project_name):
-    res = requests.post('{0}/projects/{1}'.format(BASEURL, project_name))
-    assert res.status_code == 200
+    return requests.post('{0}/projects/{1}'.format(BASEURL, project_name))
+
+
+def get_documents(project_name=None):
+    """helper function for GET /documents and GET /documents/{project_name}"""
+    if project_name is None:
+        return requests.get('{}/documents'.format(BASEURL))
+    else:
+        return requests.get('{0}/documents/{1}'.format(BASEURL, project_name))
+
+
+def get_document(project_name, document_name):
+    return requests.get('{0}/documents/{1}/{2}'.format(BASEURL, project_name, document_name))
+
+
+def add_document(project_name, document_name, rs3_filepath):
+    with open(rs3_filepath, 'rb') as rs3_file:
+        return requests.post('{0}/documents/{1}/{2}'.format(
+            BASEURL, project_name, document_name),
+            files={'rs3_file': rs3_file})
+
+
+def delete_document(project_name, document_name):
+    return requests.delete(
+        '{0}/documents/{1}/{2}'.format(BASEURL, project_name, document_name))
+
+
+def delete_documents(project_name=None):
+    if project_name is None:  # delete all documents
+        return requests.delete('{0}/documents'.format(BASEURL))
+    else:  # delete all documents belonging to the given project
+        return requests.delete('{0}/documents/{1}'.format(BASEURL, project_name))
 
 
 def test_rs3_to_png():
@@ -118,28 +146,85 @@ def test_get_index():
 
 def test_projects():
     """Projects can be added, removed and listed."""
-    projects = get_projects()
-    assert projects == []
+    res = get_projects()
+    assert res.json() == []
 
-    add_project("proj1")
-    projects = get_projects()
-    assert projects == ["proj1"]
+    res = add_project("proj1")
+    res = get_projects()
+    assert res.json() == ["proj1"]
 
-    add_project("proj2")
-    projects = get_projects()
-    assert projects == ["proj1", "proj2"]
+    res = add_project("proj2")
+    res = get_projects()
+    assert res.json() == ["proj1", "proj2"]
 
-    delete_project("proj1")
-    projects = get_projects()
-    assert projects == ["proj2"]
+    res = delete_project("proj1")
+    res = get_projects()
+    assert res.json() == ["proj2"]
 
     # delete all projects
     res = requests.delete('{}/projects'.format(BASEURL))
-    assert res.status_code == 200
-    projects = get_projects()
-    assert projects == []
+    res = get_projects()
+    assert res.json() == []
 
     # deleting a non-existing project should do nothing
-    delete_project("nonexisting_project")
-    projects = get_projects()
-    assert projects == []
+    res = delete_project("nonexisting_project")
+    assert res.status_code == 200
+    res = get_projects()
+    assert res.json() == []
+
+
+def test_documents():
+    """Documents can be added, removed and listed."""
+    # there are no documents in any project when we start
+    res = get_documents()
+    assert res.json() == {'documents': {}}
+
+    # we can add documents to different projects
+    res = add_document('project1', 'doc1', 'tests/test.rs3')
+    res = add_document('project1', 'doc2', 'tests/test.rs3')
+    res = add_document('project2', 'doc3', 'tests/test.rs3')
+
+    # we cannot add a document to a project if a document with the same
+    # name exists
+    res = add_document('project1', 'doc1', 'tests/test.rs3')
+    assert res.status_code == 400
+
+    # we can list the documents we just added
+    res = get_documents()
+    assert res.json() == {
+        'documents': {'project1': ['doc1', 'doc2'],
+                      'project2': ['doc3']}}
+
+    res = get_documents('project1')
+    assert res.json() == ['doc1', 'doc2']
+
+    # we can retrieve a document we added
+    with open('tests/test.rs3') as rs3_file:
+        res = get_document('project1', 'doc1')
+        # rstWeb parses and reformats uploaded documents, so we can't
+        # simply compare the files
+        assert 'they accepted the offer' in res.content
+
+    # after we delete a document, we can no longer retrieve it
+    delete_document('project1', 'doc1')
+    res = get_documents('project1')
+    assert res.json() == ['doc2']
+
+    res = get_document('project1', 'doc1')
+    assert res.status_code == 400
+
+    # we can delete all documents of a project
+    res = delete_documents('project1')
+    assert res.status_code == 200
+    res = get_documents('project1')
+    assert res.json() == []
+
+    # we can delete all documents
+    res = get_documents()
+    assert res.json() == {'documents': {'project2': ['doc3']}}
+    res = delete_documents()
+    assert res.status_code == 200
+    res = get_documents()
+    assert res.json() == {'documents': {}}
+
+
