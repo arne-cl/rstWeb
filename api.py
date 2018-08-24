@@ -110,14 +110,25 @@ class APIController(object):
     @cherrypy.expose
     def get_index(self):
         """Handler for / (GET).
-
-        TODO: return a list of all available handlers (incl. paths, URL parameters and use case).
-        To implement this, try this as a starting point:
-
-            a = cherrypy.tree.apps['/api']
-            r = a.config['/']['request.dispatch']
+        List all available routes and methods of the rstWeb API.
         """
-        return "rstWeb API\n"
+        response = "<pre>\nrstWeb API\n\nAvailable endpoints:\n\n"
+        
+        app = cherrypy.tree.apps['/api']
+        dispatcher = app.config['/']['request.dispatch']
+
+        routemap = defaultdict(list)
+
+        for route in dispatcher.mapper.matchlist:
+            if route.routepath:
+                routemap[route.routepath].extend(route.conditions.get('method'))
+
+        for path in sorted(routemap):
+            response += "{0} ({1})\n".format(path, ", ".join(routemap[path]))
+
+        cherrypy.response.headers['Content-Type'] = 'text/html;charset=utf-8'
+        response += "</pre>\n"
+        return response
 
     @cherrypy.tools.json_out()
     def get_projects(self):
