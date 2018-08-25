@@ -129,7 +129,11 @@ class APIController(object):
                 routemap[route.routepath].extend(route.conditions.get('method'))
 
         for path in sorted(routemap):
-            response += "{0} ({1})\n".format(path, ", ".join(routemap[path]))
+            response += "{base_url}{api_path}{endpoint} ({methods})\n".format(
+                base_url=cherrypy.request.base,
+                api_path=cherrypy.request.script_name,
+                endpoint=path,
+                methods=", ".join(routemap[path]))
 
         cherrypy.response.headers['Content-Type'] = 'text/html;charset=utf-8'
         response += "</pre>\n"
