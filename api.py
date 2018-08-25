@@ -16,9 +16,10 @@ import json
 import os
 from tempfile import mkdtemp, NamedTemporaryFile
 
-import cherrypy
+import cherrypy  # pylint: disable=import-error
 
 from modules import rstweb_sql
+from modules.rstweb_sql import generic_query as sql
 from quick_export import quickexp_main
 from screenshot import get_png
 
@@ -28,7 +29,8 @@ TEMP_PROJECT = '_temp_convert'
 
 def get_all_docs(user, project):
     """Returns a list of all documents of the given user in the given project."""
-    return [elem[0] for elem in rstweb_sql.generic_query("SELECT doc FROM docs WHERE user=? AND project=?", (user, project))]
+    return [elem[0] for elem in sql(
+        "SELECT doc FROM docs WHERE user=? AND project=?", (user, project))]
 
 def get_screenshot(file_name, project_name, user, output_format='png'):
     """Produces a screenshot of the rhetorical structure tree of a document from
@@ -43,20 +45,23 @@ def get_screenshot(file_name, project_name, user, output_format='png'):
 
     if output_format == 'png':
         cherrypy.response.headers['Content-Type'] = "application/download"
-        cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="{0}.png"'.format(file_name)
+        cherrypy.response.headers['Content-Disposition'] = \
+            'attachment; filename="{0}.png"'.format(file_name)
         return png_bytes
     elif output_format == 'png-base64':
         cherrypy.response.headers['Content-Type'] = "data:image/png;base64"
         return base64.b64encode(png_bytes)
     else:
         raise cherrypy.HTTPError(
-            400, ("Unknown screenshot format '{0}'. Supported formats: png, png-base64.").format(output_format))
+            400, ("Unknown screenshot format '{0}'. Supported formats: "
+                  "png, png-base64.").format(output_format))
 
 def get_rs3_file(file_name, project_name, user):
     """Returns a .rs3 file as a download."""
     kwargs = {'quickexp_doc': file_name, 'quickexp_project': project_name}
     cherrypy.response.headers['Content-Type'] = "application/download"
-    cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="{0}"'.format(file_name)
+    cherrypy.response.headers['Content-Disposition'] = \
+        'attachment; filename="{0}"'.format(file_name)
     return quickexp_main(user=user, admin='3', mode='local', **kwargs)
 
 def edit_document(file_name, project_name):
@@ -71,9 +76,9 @@ def edit_document(file_name, project_name):
     raise cherrypy.HTTPRedirect('/structure?{0}'.format(url_params))
 
 def kwargs2urlparams(kwargs):
-    """Converts a key-value dict into a string of URL parameters. Dict entries
-    with empty values will be ignored. This is used when redirecting API requests
-    to existing methods of the rstWeb app.
+    """Converts a key-value dict into a string of URL parameters.
+    Dict entries with empty values will be ignored. This is used when
+    redirecting API requests to existing methods of the rstWeb app.
 
     Example:
 
@@ -108,12 +113,12 @@ class APIController(object):
         return error
 
     @cherrypy.expose
-    def get_index(self):
+    def get_index(self):  # pylint: disable=no-self-use
         """Handler for / (GET).
         List all available routes and methods of the rstWeb API.
         """
         response = "<pre>\nrstWeb API\n\nAvailable endpoints:\n\n"
-        
+
         app = cherrypy.tree.apps['/api']
         dispatcher = app.config['/']['request.dispatch']
 
@@ -131,7 +136,7 @@ class APIController(object):
         return response
 
     @cherrypy.tools.json_out()
-    def get_projects(self):
+    def get_projects(self):  # pylint: disable=no-self-use
         """Handler for /projects (GET).
         Returns a list of all projects.
         """
@@ -151,7 +156,7 @@ class APIController(object):
                 500, ("Could not delete all projects. Remaining projects: '{0}'.").format(projects))
 
     @cherrypy.tools.json_out()
-    def get_project(self, project_name):
+    def get_project(self, project_name):  # pylint: disable=no-self-use
         """Handler for /projects/{project_name} (GET).
         Returns metadata about a project (incl. a list of all documents in that project
         of the user 'local').
@@ -182,19 +187,19 @@ class APIController(object):
             raise cherrypy.HTTPError(500, "Could not delete project '{0}'".format(project_name))
 
     @cherrypy.tools.json_out()
-    def get_documents(self, project_name=None):
+    def get_documents(self, project_name=None):  # pylint: disable=no-self-use
         """Handler for /documents (GET) and /documents/{project_name} (GET).
         Returns a JSON struct containing all documents in all projects from the
         user 'local'.
         """
         if project_name is None:
-            all_documents = rstweb_sql.generic_query("SELECT doc, project FROM docs WHERE user=?", ('local',))
+            all_documents = sql(
+                "SELECT doc, project FROM docs WHERE user=?", ('local',))
             docs_dict = defaultdict(list)
-            for file_name, project_name in all_documents:
-                docs_dict[project_name].append(file_name)
+            for file_name, project in all_documents:
+                docs_dict[project].append(file_name)
             return {'documents': docs_dict}
-        else:
-            return get_all_docs('local', project_name)
+        return get_all_docs('local', project_name)
 
     @cherrypy.expose
     def delete_documents(self, project_name=None):
@@ -208,9 +213,9 @@ class APIController(object):
         else:  # delete all documents of a project, but keep the project itself
             # do nothing if project doesn't exist
             if project_name in self.get_projects():
-                rstweb_sql.generic_query("DELETE FROM rst_nodes WHERE project=?",(project_name,))
-                rstweb_sql.generic_query("DELETE FROM rst_relations WHERE project=?",(project_name,))
-                rstweb_sql.generic_query("DELETE FROM docs WHERE project=?",(project_name,))
+                sql("DELETE FROM rst_nodes WHERE project=?", (project_name,))
+                sql("DELETE FROM rst_relations WHERE project=?", (project_name,))
+                sql("DELETE FROM docs WHERE project=?", (project_name,))
                 assert project_name in self.get_projects()
                 assert self.get_documents(project_name) == []
 
@@ -265,7 +270,8 @@ class APIController(object):
         To upload the document 'source.rs3' into the project 'my-project' and
         store it under the name 'target.rs3', run this command in your shell.
 
-            curl -XPOST http://localhost:8080/api/documents/my-project/target.rs3 -F rs3_file=@source.rs3
+            curl -XPOST http://localhost:8080/api/documents/my-project/target.rs3 \
+                -F rs3_file=@source.rs3
         """
         # do not overwrite existing document with the same file name
         project_docs = self.get_documents(project_name)
@@ -282,7 +288,8 @@ class APIController(object):
         if error is not None or file_name not in project_docs:
             raise cherrypy.HTTPError(
                 500, ("Cannot import document into project '{0}' with "
-                      "filename '{1}'. Reason: '{2}'").format(project, file_name, error))
+                      "filename '{1}'. Reason: '{2}'").format(
+                          project_name, file_name, error))
 
     @cherrypy.expose
     def update_document(self, project_name, file_name, rs3_file):
@@ -301,7 +308,8 @@ class APIController(object):
                 500, ("Cannot update document '{0}' in project '{1}' "
                       "Reason: '{2}'").format(file_name, project_name, error))
         else:
-            return "Updated document '{0}' in project '{1}'".format(project_name, file_name)
+            return "Updated document '{0}' in project '{1}'".format(
+                project_name, file_name)
 
     @cherrypy.expose
     def delete_document(self, project_name, file_name):
@@ -314,7 +322,8 @@ class APIController(object):
         project_docs = self.get_documents(project_name)
         if file_name in project_docs:
             raise cherrypy.HTTPError(
-                500, "Cannot delete document '{0}' from project '{1}' ".format(file_name, project_name))
+                500, "Cannot delete document '{0}' from project '{1}' ".format(
+                    file_name, project_name))
 
     @cherrypy.expose
     def convert_file(self, input_file, input_format='rs3', output_format='png'):
@@ -333,7 +342,8 @@ class APIController(object):
 
         Usage example:
 
-            curl -XPOST "http://localhost:8080/api/convert?input_format=rs3&output_format=png" -F input_file=@test.rs3 > test.png
+            curl -XPOST "http://localhost:8080/api/convert?input_format=rs3&output_format=png" \
+                -F input_file=@test.rs3 > test.png
         """
         error = None
 
@@ -344,9 +354,9 @@ class APIController(object):
             input_filepath = temp_file.name
             input_filename = os.path.basename(input_filepath)
             try:
-                self.add_document(project_name=TEMP_PROJECT, file_name=input_filename, rs3_file=input_file)
-            except Exception as e:
-                error = e
+                self.add_document(TEMP_PROJECT, input_filename, input_file)
+            except cherrypy.HTTPError as err:
+                error = err
             finally:
                 if os.path.isfile(input_filepath):
                     os.remove(input_filepath)
@@ -355,11 +365,12 @@ class APIController(object):
             project_docs = self.get_documents(TEMP_PROJECT)
             if error is not None or input_filename not in project_docs:
                 raise cherrypy.HTTPError(
-                    500, ("Cannot import temp file '{0}'. Reason: '{1}'").format(input_filepath, error))
+                    500, ("Cannot import temp file '{0}'. Reason: '{1}'").format(
+                        input_filepath, error))
 
             # convert to given output format
             if output_format in ('png', 'png-base64'):
-                response = self.get_document(project_name=TEMP_PROJECT, file_name=input_filename, output=output_format)
+                response = self.get_document(TEMP_PROJECT, input_filename, output_format)
             else:
                 raise cherrypy.HTTPError(
                     400, "Unknown output format: '{0}'".format(output_format))
@@ -372,9 +383,10 @@ class APIController(object):
                 400, "Unknown input format: '{0}'".format(input_format))
 
 
-def jsonify_error(status, message, traceback, version):
+def jsonify_error(status, message, traceback, version):  #pylint: disable=unused-argument
     """JSONify all CherryPy error responses (created by raising the
-    cherrypy.HTTPError exception)
+    cherrypy.HTTPError exception).
+    This is used in the API configuration.
     """
     cherrypy.response.headers['Content-Type'] = 'application/json'
     response_body = json.dumps(
