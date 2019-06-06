@@ -394,8 +394,8 @@ class APIController(object):
                 raise cherrypy.HTTPError(
                     400, "Unknown output format: '{0}'".format(output_format))
 
-            # delete document from database
-            self.delete_document(project_name=TEMP_PROJECT, file_name=input_filename)
+            # TODO: re-enable "delete document from database" after 'editor' debug
+            # self.delete_document(project_name=TEMP_PROJECT, file_name=input_filename)
             return response
         else:
             raise cherrypy.HTTPError(
