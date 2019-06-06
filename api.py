@@ -248,6 +248,8 @@ class APIController(object):
         elif output == 'png-base64':
             return get_screenshot(file_name, project_name, 'local', output_format='png-base64')
         elif output == 'editor':
+            # This will raise a cherrypy.HTTPRedirect to rstWeb's Structure Editor
+            # opened with the given document.
             edit_document(file_name, project_name)
         else:
             raise cherrypy.HTTPError(
@@ -384,6 +386,10 @@ class APIController(object):
             # convert to given output format
             if output_format in ('png', 'png-base64'):
                 response = self.get_document(TEMP_PROJECT, input_filename, output_format)
+            elif output_format == 'editor':
+                # This will raise a cherrypy.HTTPRedirect to rstWeb's Structure Editor
+                # opened with the given document.
+                self.get_document(TEMP_PROJECT, input_filename, output_format)
             else:
                 raise cherrypy.HTTPError(
                     400, "Unknown output format: '{0}'".format(output_format))
