@@ -65,6 +65,7 @@ def get_rs3_file(file_name, project_name, user):
         'attachment; filename="{0}"'.format(file_name)
     return quickexp_main(user=user, admin='3', mode='local', **kwargs)
 
+
 def edit_document(file_name, project_name):
     """Opens a document in the rstWeb structure editor."""
     kwargs = {
@@ -343,6 +344,7 @@ class APIController(object):
                     file_name, project_name))
 
     @cherrypy.expose
+    @cherrypy.config(**{'tools.cors.on': True})
     def convert_file(self, input_file, input_format='rs3', output_format='png'):
         """Handler for /convert (POST).
         Converts an RST document into another format without (permanently)
