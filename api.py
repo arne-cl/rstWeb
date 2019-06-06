@@ -65,7 +65,8 @@ def get_rs3_file(file_name, project_name, user):
         'attachment; filename="{0}"'.format(file_name)
     return quickexp_main(user=user, admin='3', mode='local', **kwargs)
 
-
+@cherrypy.expose
+@cherrypy.config(**{'tools.cors.on': True})
 def edit_document(file_name, project_name):
     """Opens a document in the rstWeb structure editor."""
     kwargs = {
@@ -233,6 +234,7 @@ class APIController(object):
                 assert self.get_documents(project_name) == []
 
     @cherrypy.expose
+    @cherrypy.config(**{'tools.cors.on': True})
     def get_document(self, project_name, file_name, output='rs3'):
         """Handler for /documents/{project_name}/{file_name} (GET).
         Returns a document either as an `rs3` file, a `png` image of an RST tree,
