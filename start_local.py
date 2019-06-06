@@ -38,6 +38,7 @@ class Root(object):
 		return open_main("local","3","local",**kwargs)
 
 	@cherrypy.expose
+	@cherrypy.config(**{'tools.cors.on': True})
 	def structure(self,**kwargs):
 		print_out(str(kwargs))
 		if "current_doc" not in kwargs:
