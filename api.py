@@ -74,6 +74,9 @@ def edit_document(file_name, project_name):
         'serve_mode': u'local'
     }
     url_params = kwargs2urlparams(kwargs)
+
+    # adds CORS header to response, so that Javascript clients to use the API
+    cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
     raise cherrypy.HTTPRedirect('/structure?{0}'.format(url_params))
 
 def kwargs2urlparams(kwargs):
