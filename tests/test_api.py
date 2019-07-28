@@ -8,6 +8,7 @@ Tests for the rstWeb REST API.
 
 from __future__ import print_function
 import base64
+import HTMLParser
 import io
 import os
 
@@ -24,6 +25,47 @@ TESTDIR = os.path.dirname(__file__)
 RS3_FILEPATH = os.path.join(TESTDIR, 'test1.rs3')
 EXPECTED_PNG1 = os.path.join(TESTDIR, 'result1.png')
 BASEURL = "http://127.0.0.1:8080/api"
+
+
+class TokenParser(HTMLParser.HTMLParser):
+    """Simple HTML parser to extract tokens from an rstWeb document editor page.
+
+    Note: doing this with lxml is much simpler, but I didn't want to add
+    even more dependencies.
+    """
+    def __init__(self):
+        HTMLParser.HTMLParser.__init__(self)  # super won't work, as this is an old-style class
+        self.token_span = False
+        self.tokens = []
+
+    def handle_starttag(self, tag, attributes):
+        if tag == 'span':
+            for name, val in attributes:
+                if name == 'class' and val == 'tok':
+                    self.token_span = True
+                    break
+
+    def handle_endtag(self, tag):
+        if tag == 'span' and self.token_span:
+            self.token_span = False
+
+    def handle_data(self, data):
+        if self.token_span:
+            self.tokens.append(data)
+
+    def parse(self, string):
+        """Parses the HTML and returns all the token elements as a joined string."""
+        # clean up
+        self.token_span = False
+        self.tokens = []
+
+        self.feed(string)
+        result = " ".join(self.tokens)
+
+        # clean up
+        self.token_span = False
+        self.tokens = []
+        return result
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -250,9 +292,12 @@ def test_open_document():
     """A stored document can be opened in the structure editor."""
     add_document('project1', 'doc1', RS3_FILEPATH)
     res = get_document('project1', 'doc1', output='editor')
+
     assert res.status_code == 200
-    for string in ('Structure editor', 'they accepted the offer'):
-        assert string in res.content
+    assert 'Structure editor' in res.content
+
+    token_parser = TokenParser()
+    assert 'they accepted the offer' in token_parser.parse(res.content)
 
 
 def test_update_document():
