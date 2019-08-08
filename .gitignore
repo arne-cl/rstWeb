@@ -13,3 +13,9 @@ tramp
 [._]*.sw[a-p]
 [._]s[a-v][a-z]
 [._]sw[a-p]
+
+.cache
+.pytest_cache
+build
+dist
+geckodriver.log

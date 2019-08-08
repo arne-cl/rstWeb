@@ -141,7 +141,7 @@ def structure_main(user, admin, mode, **kwargs):
 	cpout += '''<div id="canvas" class="canvas">'''
 	cpout += '\t<p id="document_name">Document: <b>'+current_doc+'</b> (project: <i>'+current_project+'</i>)</p>'
 	cpout += '''<div id="inner_canvas">'''
-	cpout += '<script src="./script/structure.js"></script>'
+	cpout += '<script src="/script/structure.js"></script>'
 
 	# Remove floating non-terminal nodes if found
 	# (e.g. due to browsing back and re-submitting old actions or other data corruption)
@@ -362,7 +362,7 @@ def structure_main(user, admin, mode, **kwargs):
 	cpout += '<input id="use_span_buttons" type="hidden" value="'+str(use_span_buttons)+'"/>\n'
 	cpout += '<input id="use_multinuc_buttons" type="hidden" value="'+str(use_multinuc_buttons)+'"/>\n'
 
-	cpout += '''	<script src="./script/jquery.jsPlumb-1.7.5-min.js"></script>
+	cpout += '''	<script src="/script/jquery.jsPlumb-1.7.5-min.js"></script>
 
 			<script>
 			'''

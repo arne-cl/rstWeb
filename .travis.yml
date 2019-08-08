@@ -1,0 +1,10 @@
+sudo: required
+
+services:
+  - docker
+
+install:
+  - docker build -t rstweb .
+
+script:
+  - docker run --entrypoint=/bin/sh -ti rstweb -c py.test tests/test_api.py
