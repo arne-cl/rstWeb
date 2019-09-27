@@ -46,9 +46,12 @@ def get_png(file_name, project_name, user, mode='local'):
     """
     download_dir = mkdtemp()
 
+    cherrypy_host, cherrypy_port = cherrypy.server.bound_addr
     path = '/structure' if mode == 'local' else '/structure.py'
     params = '?current_doc={0}&current_project={1}'.format(file_name, project_name)
-    redirect = cherrypy.HTTPRedirect(path + params)
+    request_url = 'http://{0}:{1}{2}{3}'.format(cherrypy_host, cherrypy_port, path, params)
+
+    redirect = cherrypy.HTTPRedirect(request_url)
     screenshot_url = redirect.urls[0]
 
     # use headless (i.e. invisible) browser
