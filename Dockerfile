@@ -20,14 +20,10 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckod
     tar -xvzf geckodriver-v0.24.0-linux64.tar.gz && \
     rm geckodriver-v0.24.0-linux64.tar.gz
 
-# start_local.py is not intended to be run as a server, so we have to change
-# its IP address to make it work inside a docker container.
-#
 # Remove all *.pyc files (incl. those in subdirectories).
 # Otherwise, pytest will throw an 'import file mismatch' error.
 WORKDIR /opt/rstweb
-RUN sed 's/import cherrypy$/import cherrypy; cherrypy.server.socket_host = "0.0.0.0"/g' start_local.py >> start_local_docker.py && \
-    find -name '*.pyc' -exec rm {} \;
+RUN find -name '*.pyc' -exec rm {} \;
 
 EXPOSE 8080
 ENTRYPOINT ["python"]
