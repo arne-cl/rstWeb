@@ -46,6 +46,10 @@ def get_png(file_name, project_name, user, mode='local'):
     """
     download_dir = mkdtemp()
 
+    # We need to set the host name and port of the request to _this_ running
+    # instance of CherryPy. Otherwise, the host name / port of the originating
+    # request would be used, which might be port-forwarded (e.g. in a
+    # docker-compose setup).
     cherrypy_host, cherrypy_port = cherrypy.server.bound_addr
     path = '/structure' if mode == 'local' else '/structure.py'
     params = '?current_doc={0}&current_project={1}'.format(file_name, project_name)
