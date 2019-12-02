@@ -79,7 +79,7 @@ def get_png(file_name, project_name, user, mode='local'):
     screenshot_filepath = os.path.join(download_dir, doc_name + '.png')
 
     # file download might not be finished, yet
-    retries = 10
+    retries = 30
     error_msg = "Could not generate RST image {0} within {1} seconds.".format(
         screenshot_filepath, retries)
     while retries > 0:
@@ -90,7 +90,7 @@ def get_png(file_name, project_name, user, mode='local'):
         time.sleep(1)
 
     raise cherrypy.HTTPError(
-            408, ("Could not generate RST image {} within 10 seconds.".format(screenshot_filepath)))
+            408, ("Could not generate RST image {0} within {1} seconds.".format(screenshot_filepath, retries)))
 
 
 def get_screenshot(file_name, project_name, user, output_format='png'):
